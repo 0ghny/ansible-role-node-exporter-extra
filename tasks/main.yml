@@ -31,6 +31,7 @@
     version: "{{ node_exporter_extra_version }}"
     clone: true
     update: true
+    force: true
   environment:
     GIT_TERMINAL_PROMPT: "0" # reports "terminal prompts disabled" on missing password
 
