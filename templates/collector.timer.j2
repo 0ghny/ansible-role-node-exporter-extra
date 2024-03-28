@@ -1,0 +1,10 @@
+[Unit]
+Description=Collect metrics for prometheus textfile collector
+Requires={{ item.name }}.service
+
+[Timer]
+Unit={{ item.name }}.service
+OnCalendar={{ item.schedule | default(default_collectors_schedule) }}
+
+[Install]
+WantedBy=timers.target

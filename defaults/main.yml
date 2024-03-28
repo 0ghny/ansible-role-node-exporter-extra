@@ -1,0 +1,13 @@
+---
+node_exporter_extra_dir: /opt/node-exporter-extra
+#node_exporter_extra_uid:
+#node_exporter_extra_gid:
+node_exporter_extra_repo: https://github.com/0ghny/node-exporter-collectors.git
+node_exporter_extra_version: HEAD
+node_exporter_extra_collectors: []
+# - name: collector-name
+#   schedule: "valid systemd timer schedule"
+#   env:
+#   - key: key1
+#     value: value1
+# - name: another

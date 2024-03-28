@@ -1,0 +1,74 @@
+---
+- name: Node exporter extra | collector | get collector file stats
+  tags: install,collector,binary
+  ansible.builtin.stat:
+    path: "{{ node_exporter_extra_dir }}/{{ node_exporter_extra_collectors_dirname }}/{{ item.name }}.sh"
+  register: collector_file_status
+
+- name: Node exporter extra | collector | does the collector exists?
+  ansible.builtin.fail:
+    msg: "collector specified {{ item }} does not exist"
+  when: not collector_file_status.stat.exists or not collector_file_status.stat.isreg
+
+- name: Node exporter extra | collector | does the collector exists?
+  ansible.builtin.debug:
+    msg: "Configuring {{ node_exporter_extra_dir }}/{{ node_exporter_extra_collectors_dirname }}/{{ item.name }}.sh"
+  when: collector_file_status.stat.exists and collector_file_status.stat.isreg
+
+- name: Node exporter extra | collector | copy systemd service
+  tags: install,collector,service
+  register: if_collector_service_file
+  become: true
+  ansible.builtin.template:
+    src: "collector.service.j2"
+    dest: "{{ node_exporter_extra_dir }}/{{ node_exporter_extra_systemd_dirname }}/{{ item.name }}.service"
+    owner: "{{ node_exporter_extra_uid | default(omit) }}"
+    group: "{{ node_exporter_extra_uid | default(omit) }}"
+    mode: "0644"
+
+- name: Node exporter extra | collector | copy systemd timer
+  tags: install,collector,timer
+  register: if_collector_timer_file
+  become: true
+  ansible.builtin.template:
+    src: "collector.timer.j2"
+    dest: "{{ node_exporter_extra_dir }}/{{ node_exporter_extra_systemd_dirname }}/{{ item.name }}.timer"
+    owner: "{{ node_exporter_extra_uid | default(omit) }}"
+    group: "{{ node_exporter_extra_uid | default(omit) }}"
+    mode: "0644"
+
+- name: Node exporter extra | collector | copy environment file
+  tags: install,collector,timer
+  register: if_collector_env_file
+  become: true
+  ansible.builtin.template:
+    src: "collector.env.j2"
+    dest: "{{ node_exporter_extra_dir }}/{{ node_exporter_extra_systemd_dirname }}/{{ item.name }}.env"
+    owner: "{{ node_exporter_extra_uid | default(omit) }}"
+    group: "{{ node_exporter_extra_uid | default(omit) }}"
+    mode: "0644"
+
+- name: Node exporter extra | collector | systemd reload
+  tags: install,collector,systemd
+  when: if_collector_timer_file.changed or if_collector_service_file.changed
+  become: true
+  ansible.builtin.systemd:
+    daemon-reload: true
+
+- name: Node exporter extra | collector | systemd service enable
+  tags: install,collector,systemd,service
+  when: if_collector_service_file.changed or if_collector_env_file.changed
+  become: true
+  ansible.builtin.shell: |
+    systemctl enable {{ node_exporter_extra_dir }}/{{ node_exporter_extra_systemd_dirname }}/{{ item.name }}.service && \
+    systemctl restart {{ item.name }}.service
+
+- name: Node exporter extra | collector | systemd timer enable
+  tags: install,collector,systemd,timer
+  when: if_collector_timer_file.changed
+  become: true
+  ansible.builtin.shell: |
+    systemctl enable {{ node_exporter_extra_dir }}/{{ node_exporter_extra_systemd_dirname }}/{{ item.name }}.timer && \
+    systemctl restart {{ item.name }}.timer
+  register: if_collector_timer_enable
+  changed_when: if_collector_timer_enable.stdout.find('Created symlink') != -1

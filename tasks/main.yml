@@ -1,0 +1,58 @@
+---
+- name: Node exporter extra | create directory
+  tags: exporters,dir,install
+  become: true
+  ansible.builtin.file:
+    path: "{{ node_exporter_extra_dir }}"
+    state: directory
+    owner: "{{ node_exporter_extra_uid | default(omit) }}"
+    group: "{{ node_exporter_extra_uid | default(omit) }}"
+# .............................................................................
+# TEXTFILE COLLECTORS Installation
+# .............................................................................
+- name: Node exporter extra | collectors | create textfile collectors directories
+  tags: exporters,dir,install
+  when: node_exporter_extra_collectors is defined and node_exporter_extra_collectors|length
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ node_exporter_extra_uid | default(omit) }}"
+    group: "{{ node_exporter_extra_uid | default(omit) }}"
+  loop:
+    - "{{ node_exporter_extra_dir }}/{{ node_exporter_extra_collectors_dirname }}"
+    - "{{ node_exporter_extra_dir }}/{{ node_exporter_extra_output_dirname }}"
+    - "{{ node_exporter_extra_dir }}/{{ node_exporter_extra_systemd_dirname }}"
+
+- name: Node exporter extra | adds collectors from repository
+  ansible.builtin.git:
+    repo: "{{ node_exporter_extra_repo }}"
+    dest: "{{ node_exporter_extra_dir }}/{{ node_exporter_extra_collectors_dirname }}"
+    version: "{{ node_exporter_extra_version }}"
+    clone: true
+    update: true
+  environment:
+    GIT_TERMINAL_PROMPT: "0" # reports "terminal prompts disabled" on missing password
+
+- name: Node exporter extra | lookup for valid collector files
+  find:
+    paths: "{{ node_exporter_extra_dir }}/{{ node_exporter_extra_collectors_dirname }}"
+    file_type: file
+    patterns: "*.sh"
+  register: collector_filelist
+
+- name: Node exporter extra | set collector files as executable
+  file:
+    path: "{{ item.path }}"
+    state: file
+    owner: "{{ node_exporter_extra_uid | default(omit) }}"
+    group: "{{ node_exporter_extra_uid | default(omit) }}"
+    mode: "0775"
+  with_items: "{{ collector_filelist.files }}"
+
+- name: Node exporter extra | collectors | perform install
+  ansible.builtin.include_tasks: install_collector.yml
+  loop: "{{ node_exporter_extra_collectors }}"
+# .............................................................................
+# / TEXTFILE COLLECTORS
+# .............................................................................

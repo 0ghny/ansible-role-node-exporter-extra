@@ -1,0 +1,11 @@
+[Unit]
+Description=Collect metrics for prometheus textfile collector
+Wants={{ item.name }}.timer
+
+[Service]
+Type=oneshot
+EnvironmentFile=-{{ node_exporter_extra_dir }}/collectors-systemd/{{ item.name }}.env
+ExecStart=/bin/bash -c '{{ node_exporter_extra_dir }}/collectors/{{ item.name }}.sh > {{ node_exporter_extra_dir }}/output/{{ item.name }}.prom'
+
+[Install]
+WantedBy=multi-user.target

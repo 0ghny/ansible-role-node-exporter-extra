@@ -1,0 +1,4 @@
+default_collectors_schedule: daily
+node_exporter_extra_output_dirname: output
+node_exporter_extra_systemd_dirname: systemd
+node_exporter_extra_collectors_dirname: collectors
